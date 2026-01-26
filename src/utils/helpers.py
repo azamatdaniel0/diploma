@@ -303,7 +303,8 @@ def validate_input_data(
 def generate_sample_data(
     region: str = "chui",
     days: int = 365,
-    scenario: str = "normal"
+    scenario: str = "normal",
+    hourly: bool = True
 ) -> pd.DataFrame:
     """
     Генерация тестовых данных для демонстрации.
@@ -312,6 +313,7 @@ def generate_sample_data(
         region: Код региона
         days: Число дней
         scenario: Сценарий ('normal', 'wet', 'dry', 'extreme')
+        hourly: Генерировать почасовые данные (True) или суточные (False)
 
     Returns:
         DataFrame с тестовыми данными
@@ -321,34 +323,93 @@ def generate_sample_data(
     np.random.seed(42)
 
     start_date = datetime(2024, 1, 1)
-    dates = [start_date + timedelta(days=i) for i in range(days)]
 
-    # Базовые осадки с сезонной вариацией
-    day_of_year = np.array([d.timetuple().tm_yday for d in dates])
+    if hourly:
+        # Почасовые данные
+        n_points = days * 24
+        dates = [start_date + timedelta(hours=i) for i in range(n_points)]
+        day_of_year = np.array([d.timetuple().tm_yday for d in dates])
+        hour_of_day = np.array([d.hour for d in dates])
 
-    # Сезонный паттерн для Кыргызстана
-    seasonal = (
-        np.sin((day_of_year - 60) * 2 * np.pi / 365) * 5 +  # Весенний максимум
-        np.sin((day_of_year - 200) * 2 * np.pi / 365) * 3    # Летний пик
-    )
-    seasonal = np.maximum(seasonal, 0)
+        # Сезонный паттерн для Кыргызстана
+        seasonal = (
+            np.sin((day_of_year - 60) * 2 * np.pi / 365) * 0.3 +  # Весенний максимум
+            np.sin((day_of_year - 200) * 2 * np.pi / 365) * 0.2    # Летний пик
+        )
+        seasonal = np.maximum(seasonal, 0)
 
-    # Случайные осадки
-    precip = np.random.exponential(scale=3, size=days) + seasonal
-    precip = np.maximum(precip, 0)
+        # Дневной паттерн осадков (больше вечером)
+        diurnal = 0.5 + 0.5 * np.sin((hour_of_day - 6) * 2 * np.pi / 24)
 
-    # Добавление экстремальных событий
-    if scenario in ['normal', 'wet', 'extreme']:
-        extreme_days = np.random.choice(days, size=int(days * 0.02), replace=False)
-        precip[extreme_days] *= np.random.uniform(3, 6, size=len(extreme_days))
+        # Случайные осадки (большинство часов без осадков)
+        precip = np.random.exponential(scale=0.3, size=n_points) * seasonal * diurnal
 
-    # Модификация по сценарию
-    multipliers = {'normal': 1.0, 'wet': 1.5, 'dry': 0.5, 'extreme': 2.0}
-    precip *= multipliers.get(scenario, 1.0)
+        # Добавление "дождливых" периодов
+        n_rain_events = int(days * 0.15)  # 15% дней с дождем
+        rain_starts = np.random.choice(range(0, n_points - 12), size=n_rain_events, replace=False)
+        for start in rain_starts:
+            duration = np.random.randint(3, 12)
+            intensity = np.random.exponential(2)
+            precip[start:start+duration] += intensity * np.random.exponential(1, duration)
 
-    # Температура
-    base_temp = 10 + 15 * np.sin((day_of_year - 100) * 2 * np.pi / 365)
-    temp = base_temp + np.random.normal(0, 3, size=days)
+        precip = np.maximum(precip, 0)
+
+        # Добавление экстремальных событий
+        if scenario in ['normal', 'wet', 'extreme']:
+            n_extreme = max(1, int(days * 0.02))
+            extreme_starts = np.random.choice(range(0, n_points - 24), size=n_extreme, replace=False)
+            for start in extreme_starts:
+                duration = np.random.randint(6, 24)
+                precip[start:start+duration] *= np.random.uniform(4, 8)
+
+        # Модификация по сценарию
+        multipliers = {'normal': 1.0, 'wet': 1.5, 'dry': 0.5, 'extreme': 2.0}
+        precip *= multipliers.get(scenario, 1.0)
+
+        # Температура с дневным циклом
+        base_temp = 10 + 15 * np.sin((day_of_year - 100) * 2 * np.pi / 365)
+        diurnal_temp = 5 * np.sin((hour_of_day - 6) * 2 * np.pi / 24)  # Макс в 18:00
+        temp = base_temp + diurnal_temp + np.random.normal(0, 2, size=n_points)
+
+    else:
+        # Суточные данные
+        dates = [start_date + timedelta(days=i) for i in range(days)]
+        day_of_year = np.array([d.timetuple().tm_yday for d in dates])
+
+        # Сезонный паттерн
+        seasonal = (
+            np.sin((day_of_year - 60) * 2 * np.pi / 365) * 5 +
+            np.sin((day_of_year - 200) * 2 * np.pi / 365) * 3
+        )
+        seasonal = np.maximum(seasonal, 0)
+
+        # Случайные осадки
+        precip = np.random.exponential(scale=3, size=days) + seasonal
+        precip = np.maximum(precip, 0)
+
+        # Добавление экстремальных событий
+        if scenario in ['normal', 'wet', 'extreme']:
+            extreme_days = np.random.choice(days, size=int(days * 0.02), replace=False)
+            precip[extreme_days] *= np.random.uniform(3, 6, size=len(extreme_days))
+
+        # Модификация по сценарию
+        multipliers = {'normal': 1.0, 'wet': 1.5, 'dry': 0.5, 'extreme': 2.0}
+        precip *= multipliers.get(scenario, 1.0)
+
+        # Температура
+        base_temp = 10 + 15 * np.sin((day_of_year - 100) * 2 * np.pi / 365)
+        temp = base_temp + np.random.normal(0, 3, size=days)
+
+    # Учет региональных особенностей
+    if region in REGIONS:
+        config = REGIONS[region]
+        # Корректировка температуры по высоте (лапс-рейт ~6°C/1000м)
+        elevation_correction = (config.avg_elevation - 1500) / 1000 * (-6)
+        temp += elevation_correction
+
+        # Корректировка осадков по высоте
+        if config.avg_elevation > 2500:
+            precip *= 1.3  # Больше осадков в горах
 
     # Создание DataFrame
     df = pd.DataFrame({

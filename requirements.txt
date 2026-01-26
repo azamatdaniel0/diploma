@@ -26,3 +26,13 @@ notebook>=7.0.0
 
 # Тестирование
 pytest>=7.3.0
+
+# Web UI
+streamlit>=1.28.0
+plotly>=5.18.0
+streamlit-folium>=0.15.0
+
+# Расширенное машинное обучение
+xgboost>=2.0.0
+lightgbm>=4.0.0
+joblib>=1.3.0

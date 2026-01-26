@@ -22,6 +22,26 @@ class RegionConfig:
     avg_elevation: float  # метры
     main_rivers: List[str]
 
+    @property
+    def lon_min(self) -> float:
+        """Минимальная долгота."""
+        return self.bounds[0]
+
+    @property
+    def lat_min(self) -> float:
+        """Минимальная широта."""
+        return self.bounds[1]
+
+    @property
+    def lon_max(self) -> float:
+        """Максимальная долгота."""
+        return self.bounds[2]
+
+    @property
+    def lat_max(self) -> float:
+        """Максимальная широта."""
+        return self.bounds[3]
+
 
 # Регионы Кыргызстана для моделирования
 REGIONS: Dict[str, RegionConfig] = {
