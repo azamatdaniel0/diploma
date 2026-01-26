@@ -73,6 +73,7 @@ THEMES = {
         'shadow': 'rgba(0, 0, 0, 0.08)',
         'gradient_start': '#667eea',
         'gradient_end': '#764ba2',
+        'text_on_accent': '#ffffff',
     },
     'dark': {
         'bg_primary': '#0e1117',
@@ -86,6 +87,7 @@ THEMES = {
         'shadow': 'rgba(0, 0, 0, 0.3)',
         'gradient_start': '#667eea',
         'gradient_end': '#764ba2',
+        'text_on_accent': '#ffffff',
     }
 }
 
@@ -107,6 +109,7 @@ st.markdown(f"""
         --shadow: {current_theme['shadow']};
         --gradient-start: {current_theme['gradient_start']};
         --gradient-end: {current_theme['gradient_end']};
+        --text-on-accent: {current_theme['text_on_accent']};
         --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }}
 
@@ -198,7 +201,7 @@ st.markdown(f"""
 
     .risk-low {{
         background: linear-gradient(135deg, #4CAF50, #66BB6A);
-        color: white;
+        color: var(--text-on-accent);
         box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
     }}
     .risk-moderate {{
@@ -208,12 +211,12 @@ st.markdown(f"""
     }}
     .risk-high {{
         background: linear-gradient(135deg, #FF9800, #FFB74D);
-        color: white;
+        color: var(--text-on-accent);
         box-shadow: 0 4px 15px rgba(255, 152, 0, 0.4);
     }}
     .risk-critical {{
         background: linear-gradient(135deg, #F44336, #E57373);
-        color: white;
+        color: var(--text-on-accent);
         box-shadow: 0 4px 15px rgba(244, 67, 54, 0.4);
         animation: pulse-critical 2s infinite;
     }}
@@ -249,7 +252,7 @@ st.markdown(f"""
 
     .stTabs [aria-selected="true"] {{
         background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)) !important;
-        color: white !important;
+        color: var(--text-on-accent) !important;
         box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
     }}
 
@@ -288,7 +291,7 @@ st.markdown(f"""
     /* ===================== КНОПКИ ===================== */
     .stButton > button {{
         background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-        color: white;
+        color: var(--text-on-accent);
         border: none;
         border-radius: 10px;
         padding: 0.75rem 1.5rem;
@@ -324,7 +327,7 @@ st.markdown(f"""
 
     .theme-toggle:hover {{
         background: var(--accent);
-        color: white;
+        color: var(--text-on-accent);
         border-color: var(--accent);
     }}
 
@@ -460,7 +463,7 @@ st.markdown(f"""
 
     .tooltip:hover .tooltip-icon {{
         background: var(--accent);
-        color: white;
+        color: var(--text-on-accent);
         border-color: var(--accent);
     }}
 
@@ -1799,9 +1802,9 @@ with tab5:
                     st.markdown(f"**Макс осадки:** {event.max_precipitation_mm:.1f} мм")
                     st.markdown(f"**Всего осадков:** {event.total_precipitation_mm:.1f} мм")
 
-                    risk_color = get_risk_color(event.risk_level.value)
+                    risk_class = f"risk-{event.risk_level.value}"
                     st.markdown(
-                        f'<span style="background-color:{risk_color};color:white;padding:5px 10px;border-radius:5px;">'
+                        f'<span class="{risk_class}" style="padding:5px 10px;border-radius:5px;display:inline-block;">'
                         f'{get_risk_label(event.risk_level.value)}</span>',
                         unsafe_allow_html=True
                     )
