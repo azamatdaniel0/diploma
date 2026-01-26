@@ -504,7 +504,7 @@ def validate_weather_data(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict]:
                 df[col] = df[col].fillna(0)  # Нет данных = нет осадков
             elif col == 'temperature_c':
                 df[col] = df[col].interpolate(method='linear')
-                df[col] = df[col].fillna(method='bfill').fillna(method='ffill')
+                df[col] = df[col].bfill().ffill()
             else:
                 df[col] = df[col].fillna(0)
 

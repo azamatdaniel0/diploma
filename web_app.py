@@ -1725,12 +1725,16 @@ with tab4:
                 st.markdown("#### Сводка по сценариям")
                 comparison_stats = []
                 for name, sc_results in scenario_results.items():
+                    # Безопасное получение преобладающего риска
+                    risk_counts = sc_results['risk_level'].value_counts()
+                    predominant_risk = get_risk_label(risk_counts.index[0]) if len(risk_counts) > 0 else 'Нет данных'
+
                     comparison_stats.append({
                         'Сценарий': name,
                         'Макс расход (м3/с)': f"{sc_results['discharge_m3s'].max():.1f}",
                         'Средний расход (м3/с)': f"{sc_results['discharge_m3s'].mean():.1f}",
                         'Часов > порога': int((sc_results['discharge_m3s'] > flood_threshold).sum()),
-                        'Преобладающий риск': get_risk_label(sc_results['risk_level'].value_counts().index[0])
+                        'Преобладающий риск': predominant_risk
                     })
 
                 comparison_df = pd.DataFrame(comparison_stats)
@@ -1981,52 +1985,56 @@ with tab6:
             # Индикаторы в виде манометров
             st.markdown("### 🎯 Индикаторы в реальном времени")
 
-            col1, col2, col3 = st.columns(3)
+            # Проверка наличия данных
+            if len(results) == 0 or len(input_data) == 0:
+                st.warning("Недостаточно данных для отображения индикаторов")
+            else:
+                col1, col2, col3 = st.columns(3)
 
-            with col1:
-                current_discharge = results['discharge_m3s'].iloc[-1]
-                max_discharge = results['discharge_m3s'].max()
-                fig_gauge1 = create_gauge_chart(
-                    current_discharge,
-                    max_discharge * 1.2,
-                    "Текущий расход (м³/с)",
-                    thresholds={
-                        'low': flood_threshold * 0.5,
-                        'moderate': flood_threshold * 0.75,
-                        'high': flood_threshold
-                    }
-                )
-                st.plotly_chart(fig_gauge1, use_container_width=True, config=chart_config)
+                with col1:
+                    current_discharge = results['discharge_m3s'].iloc[-1]
+                    max_discharge = results['discharge_m3s'].max()
+                    fig_gauge1 = create_gauge_chart(
+                        current_discharge,
+                        max_discharge * 1.2,
+                        "Текущий расход (м³/с)",
+                        thresholds={
+                            'low': flood_threshold * 0.5,
+                            'moderate': flood_threshold * 0.75,
+                            'high': flood_threshold
+                        }
+                    )
+                    st.plotly_chart(fig_gauge1, use_container_width=True, config=chart_config)
 
-            with col2:
-                total_precip = input_data['precipitation_mm'].sum()
-                max_expected = total_precip * 1.5
-                fig_gauge2 = create_gauge_chart(
-                    total_precip,
-                    max_expected,
-                    "Общие осадки (мм)",
-                    thresholds={
-                        'low': max_expected * 0.3,
-                        'moderate': max_expected * 0.5,
-                        'high': max_expected * 0.75
-                    }
-                )
-                st.plotly_chart(fig_gauge2, use_container_width=True, config=chart_config)
+                with col2:
+                    total_precip = input_data['precipitation_mm'].sum()
+                    max_expected = total_precip * 1.5
+                    fig_gauge2 = create_gauge_chart(
+                        total_precip,
+                        max_expected,
+                        "Общие осадки (мм)",
+                        thresholds={
+                            'low': max_expected * 0.3,
+                            'moderate': max_expected * 0.5,
+                            'high': max_expected * 0.75
+                        }
+                    )
+                    st.plotly_chart(fig_gauge2, use_container_width=True, config=chart_config)
 
-            with col3:
-                flood_hours = (results['discharge_m3s'] > flood_threshold).sum()
-                total_hours = len(results)
-                fig_gauge3 = create_gauge_chart(
-                    flood_hours,
-                    total_hours * 0.3,
-                    "Часы паводка",
-                    thresholds={
-                        'low': total_hours * 0.05,
-                        'moderate': total_hours * 0.1,
-                        'high': total_hours * 0.2
-                    }
-                )
-                st.plotly_chart(fig_gauge3, use_container_width=True, config=chart_config)
+                with col3:
+                    flood_hours = (results['discharge_m3s'] > flood_threshold).sum()
+                    total_hours = len(results)
+                    fig_gauge3 = create_gauge_chart(
+                        flood_hours,
+                        total_hours * 0.3,
+                        "Часы паводка",
+                        thresholds={
+                            'low': total_hours * 0.05,
+                            'moderate': total_hours * 0.1,
+                            'high': total_hours * 0.2
+                        }
+                    )
+                    st.plotly_chart(fig_gauge3, use_container_width=True, config=chart_config)
 
         # Секция экспорта
         st.markdown("---")

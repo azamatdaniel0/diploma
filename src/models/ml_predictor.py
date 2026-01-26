@@ -1108,25 +1108,40 @@ def generate_training_data(
     # Добавление экстремальных событий
     if include_floods:
         # Количество паводковых событий пропорционально количеству дней
-        n_floods = max(3, min(10, days // 30))
-        available_range = max(1, days - 60)
-        flood_days = np.random.choice(
-            range(10, 10 + available_range),
-            size=min(n_floods, available_range),
-            replace=False
-        )
-        for day in flood_days:
-            # Интенсивные осадки в течение 24-72 часов
-            duration = np.random.randint(24, 72)
-            start_idx = day * 24
-            end_idx = min(start_idx + duration, len(data))
-            # Высокая интенсивность осадков для гарантии паводка
-            data.loc[start_idx:end_idx, 'precipitation_mm'] = np.random.uniform(15, 40, end_idx - start_idx + 1)
+        # Минимум 1, максимум 10, примерно 1 событие на 30 дней
+        n_floods = max(1, min(10, days // 30))
+
+        # Доступный диапазон дней для размещения событий (оставляем буфер в начале и конце)
+        buffer_days = 10
+        available_days = max(1, days - 2 * buffer_days)
+
+        # Корректируем количество событий, чтобы не превышать доступное пространство
+        n_floods = min(n_floods, available_days)
+
+        # Выбираем дни для паводковых событий
+        if n_floods > 0 and available_days > 0:
+            flood_days = np.random.choice(
+                range(buffer_days, buffer_days + available_days),
+                size=n_floods,
+                replace=False
+            )
+
+            for day in flood_days:
+                # Интенсивные осадки в течение 24-72 часов
+                duration = np.random.randint(24, 72)
+                start_idx = day * 24
+                end_idx = min(start_idx + duration, len(data))
+                # Высокая интенсивность осадков для гарантии паводка
+                data.loc[start_idx:end_idx, 'precipitation_mm'] = np.random.uniform(15, 40, end_idx - start_idx + 1)
 
     # Запуск моделирования для получения расхода и уровня риска
     model = FloodModel(region=region)
     model.initialize_state(data['timestamp'].iloc[0])
     results = model.run_simulation(data, dt_hours=1)
+
+    # Проверка наличия необходимых колонок
+    if 'discharge_m3s' not in results.columns or 'risk_level' not in results.columns:
+        raise ValueError("Результаты моделирования не содержат необходимые колонки 'discharge_m3s' и 'risk_level'")
 
     # Объединение
     data['discharge_m3s'] = results['discharge_m3s'].values

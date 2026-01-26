@@ -450,6 +450,13 @@ class FloodModel:
         Returns:
             Список паводковых событий
         """
+        # Проверка входных данных
+        if simulation_results is None or len(simulation_results) == 0:
+            return []
+
+        if 'discharge_m3s' not in simulation_results.columns:
+            raise ValueError("Результаты моделирования должны содержать колонку 'discharge_m3s'")
+
         threshold = self.params.flood_discharge_threshold
         events = []
 
@@ -497,7 +504,27 @@ class FloodModel:
             Словарь со статистикой
         """
         if not self.flood_events:
-            return {'events': 0}
+            return {
+                'events': 0,
+                'peak_discharge': {
+                    'mean': 0.0,
+                    'max': 0.0,
+                    'std': 0.0
+                },
+                'duration_hours': {
+                    'mean': 0.0,
+                    'max': 0.0,
+                    'total': 0.0
+                },
+                'volume_m3': {
+                    'mean': 0.0,
+                    'max': 0.0,
+                    'total': 0.0
+                },
+                'risk_distribution': {
+                    level.value: 0 for level in FloodRiskLevel
+                }
+            }
 
         peak_discharges = [e.peak_discharge_m3s for e in self.flood_events]
         durations = [e.duration_hours for e in self.flood_events]
