@@ -169,8 +169,9 @@ class FloodFeatureEngineering:
                 features[f'temp_lag_{lag}'] = features['temperature_c'].shift(lag).fillna(features['temperature_c'].mean())
 
         # Сохранение имен признаков
+        # Исключаем целевые переменные, метки и нечисловые колонки
         self.feature_names = [col for col in features.columns
-                             if col not in ['timestamp', 'target', 'risk_level', 'discharge_m3s']]
+                             if col not in ['timestamp', 'target', 'risk_level', 'discharge_m3s', 'flood', 'severity', 'region']]
 
         return features
 
@@ -637,7 +638,10 @@ class FloodMLPredictor:
 
         # Создание целевой переменной
         if self.target == FloodPredictionTarget.BINARY:
-            if 'discharge_m3s' in df.columns:
+            # Если уже есть колонка 'flood' (реальные метки), используем её
+            if 'flood' in df.columns:
+                y = df['flood'].astype(int).values
+            elif 'discharge_m3s' in df.columns:
                 y = (df['discharge_m3s'] > flood_threshold).astype(int)
             elif 'risk_level' in df.columns:
                 y = (df['risk_level'].isin(['high', 'critical'])).astype(int)
@@ -1169,6 +1173,151 @@ def generate_training_data(
                 )
 
     return data
+
+
+def generate_training_data_real(
+    region: str,
+    start_date: str,
+    end_date: str,
+    flood_events: pd.DataFrame = None,
+    buffer_hours: int = 0
+) -> pd.DataFrame:
+    """
+    Генерация данных для обучения на основе РЕАЛЬНЫХ метеоданных и исторических паводков.
+
+    Args:
+        region: Регион ('chui', 'issyk_kul', 'naryn', 'osh', 'jalal_abad', 'talas', 'batken')
+        start_date: Начальная дата в формате 'YYYY-MM-DD'
+        end_date: Конечная дата в формате 'YYYY-MM-DD'
+        flood_events: DataFrame с историческими паводками (опционально)
+            Колонки: start_date, end_date, severity
+            Если None, будет использован пороговый метод
+        buffer_hours: Часы буфера до/после паводка (для учета неточности времени)
+
+    Returns:
+        DataFrame с данными для обучения, содержащий:
+        - Реальные метеоданные (осадки, температура, и т.д.)
+        - Результаты гидрологического моделирования
+        - Метки паводков на основе исторических событий
+
+    Example:
+        >>> from src.data.flood_database import load_kyrgyzstan_floods
+        >>> floods = load_kyrgyzstan_floods('data/FloodArchive.csv')
+        >>> training_data = generate_training_data_real(
+        ...     region='chui',
+        ...     start_date='2018-01-01',
+        ...     end_date='2023-12-31',
+        ...     flood_events=floods
+        ... )
+    """
+    from ..data.weather_api import KyrgyzstanWeatherLoader
+    from ..data.flood_database import merge_flood_labels
+    from .flood_model import FloodModel
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    logger.info(f"Загрузка реальных метеоданных для региона {region}: {start_date} - {end_date}")
+
+    # 1. Получение реальных метеоданных из Open-Meteo API
+    try:
+        weather_loader = KyrgyzstanWeatherLoader(region=region, use_cache=True)
+        weather_df = weather_loader.get_historical(
+            start_date=start_date,
+            end_date=end_date,
+            hourly=True
+        )
+        logger.info(f"✓ Загружено {len(weather_df)} часовых записей реальных метеоданных")
+    except Exception as e:
+        logger.error(f"Ошибка загрузки метеоданных: {e}")
+        raise
+
+    if len(weather_df) == 0:
+        raise ValueError(f"Не удалось загрузить метеоданные для региона {region} за период {start_date} - {end_date}")
+
+    # 2. Запуск гидрологического моделирования
+    logger.info("Запуск гидрологической модели...")
+    try:
+        model = FloodModel(region=region)
+        model.initialize_state(weather_df['timestamp'].iloc[0])
+        results = model.run_simulation(weather_df, dt_hours=1)
+        logger.info(f"✓ Моделирование завершено")
+        logger.info(f"  Максимальный расход: {results['discharge_m3s'].max():.1f} м³/с")
+        logger.info(f"  Средний расход: {results['discharge_m3s'].mean():.1f} м³/с")
+    except Exception as e:
+        logger.error(f"Ошибка моделирования: {e}")
+        raise
+
+    # 3. Добавление меток паводков
+    if flood_events is not None and len(flood_events) > 0:
+        logger.info(f"Присвоение меток на основе {len(flood_events)} исторических паводков...")
+        try:
+            results = merge_flood_labels(
+                results,
+                flood_events,
+                buffer_hours=buffer_hours
+            )
+            flood_hours = results['flood'].sum()
+            total_hours = len(results)
+            flood_percentage = (flood_hours / total_hours) * 100
+
+            logger.info(f"✓ Промаркировано {flood_hours} часов как паводковые ({flood_percentage:.2f}%)")
+
+            if flood_hours == 0:
+                logger.warning("⚠ Не найдено паводковых событий в указанном периоде!")
+                logger.warning("  Проверьте:")
+                logger.warning("  1. Совпадает ли период данных с периодом паводков")
+                logger.warning("  2. Соответствует ли регион событиям в базе данных")
+                logger.warning("  Используется пороговый метод как запасной вариант")
+                # Запасной вариант: пороговый метод с динамическим порогом
+                threshold = results['discharge_m3s'].quantile(0.90)
+                if threshold < 20.0:
+                    threshold = 20.0
+                logger.info(f"Используется динамический порог: {threshold:.1f} м³/с (90-й перцентиль)")
+
+                results['flood'] = (results['discharge_m3s'] > threshold).astype(int)
+                results['severity'] = results.apply(
+                    lambda row: 'high' if row['discharge_m3s'] > threshold * 1.5
+                    else 'moderate' if row['discharge_m3s'] > threshold
+                    else 'none',
+                    axis=1
+                )
+                logger.info(f"✓ Пороговый метод: {results['flood'].sum()} часов как паводковые")
+
+        except Exception as e:
+            logger.error(f"Ошибка при присвоении меток паводков: {e}")
+            raise
+    else:
+        logger.warning("⚠ Исторические паводки не предоставлены, используется пороговый метод")
+        logger.warning("  Для лучшего качества модели загрузите базу данных паводков DFO")
+        logger.warning("  Скачать: https://floodobservatory.colorado.edu/Archives/")
+
+        # Пороговый метод (менее точный)
+        # Используем динамический порог: 90-й перцентиль расхода
+        threshold = results['discharge_m3s'].quantile(0.90)
+        if threshold < 20.0:  # Минимальный разумный порог
+            threshold = 20.0
+        logger.info(f"Используется динамический порог: {threshold:.1f} м³/с (90-й перцентиль)")
+
+        results['flood'] = (results['discharge_m3s'] > threshold).astype(int)
+        results['severity'] = results.apply(
+            lambda row: 'high' if row['discharge_m3s'] > threshold * 1.5
+            else 'moderate' if row['discharge_m3s'] > threshold
+            else 'none',
+            axis=1
+        )
+        logger.info(f"Пороговый метод: {results['flood'].sum()} часов как паводковые " +
+                   f"({results['flood'].mean()*100:.2f}%)")
+
+    # 4. Проверка целостности данных
+    required_columns = ['timestamp', 'precipitation_mm', 'temperature_c', 'discharge_m3s', 'flood']
+    missing_columns = [col for col in required_columns if col not in results.columns]
+    if missing_columns:
+        raise ValueError(f"Отсутствуют необходимые колонки: {missing_columns}")
+
+    logger.info(f"✓ Данные для обучения готовы: {len(results)} записей")
+
+    return results
 
 
 def train_flood_predictor(

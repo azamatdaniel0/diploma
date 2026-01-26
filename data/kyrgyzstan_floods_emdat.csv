@@ -1,0 +1,4 @@
+start_date,end_date,Country,severity,Dead,Displaced,MainCause
+2024-04-21,2024-04-22,"Kyrgyzstan - Batken, Jalal-Abad, Naryn, Osh, Talas, Kara-Suuyskiy, Nookatsky, Uzgen, Alai, Zhumgalsky",critical,0.0,103901.0,Heavy Rain
+2024-05-05,2024-05-07,Kyrgyzstan - Bazar-Korgon district (Jalal-Abad region),moderate,0.0,500.0,Heavy Rain
+2024-07-14,2024-07-16,Kyrgyzstan - Osh city (Osh city region),high,6.0,3000.0,Heavy Rain

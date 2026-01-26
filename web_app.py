@@ -53,9 +53,61 @@ st.set_page_config(
 if 'theme' not in st.session_state:
     st.session_state.theme = 'light'
 
+# Инициализация языка
+if 'language' not in st.session_state:
+    st.session_state.language = 'ru'  # ru or kg
+
 def toggle_theme():
     """Переключение темы."""
     st.session_state.theme = 'dark' if st.session_state.theme == 'light' else 'light'
+
+def toggle_language():
+    """Переключение языка."""
+    st.session_state.language = 'kg' if st.session_state.language == 'ru' else 'ru'
+
+# Словарь переводов
+TRANSLATIONS = {
+    'ru': {
+        'title': 'Прогноз паводков в Кыргызстане',
+        'region': 'Регион',
+        'area': 'Площадь',
+        'elevation': 'Высота',
+        'rivers': 'Реки',
+        'simulation': 'Симуляция',
+        'ml_prediction': 'ML Прогноз',
+        'map': 'Карта',
+        'analysis': 'Анализ',
+        'events': 'События',
+        'advanced_charts': 'Расширенные графики',
+        'export': 'Экспорт',
+        'dark_theme': 'Тёмная тема',
+        'light_theme': 'Светлая тема',
+        'kyrgyz_lang': 'Кыргызча',
+        'russian_lang': 'Русский',
+    },
+    'kg': {
+        'title': 'Кыргызстандагы тошкундарды болжолдоо',
+        'region': 'Аймак',
+        'area': 'Аянты',
+        'elevation': 'Бийиктиги',
+        'rivers': 'Дарыялар',
+        'simulation': 'Симуляция',
+        'ml_prediction': 'ML Болжолдоо',
+        'map': 'Карта',
+        'analysis': 'Анализ',
+        'events': 'Окуялар',
+        'advanced_charts': 'Кеңейтилген графиктер',
+        'export': 'Экспорт',
+        'dark_theme': 'Караңгы тема',
+        'light_theme': 'Жарык тема',
+        'kyrgyz_lang': 'Кыргызча',
+        'russian_lang': 'Орусча',
+    }
+}
+
+def t(key):
+    """Получить перевод по ключу."""
+    return TRANSLATIONS[st.session_state.language].get(key, key)
 
 # Определение цветов темы
 THEMES = {
@@ -204,7 +256,7 @@ st.markdown(f"""
     }}
     .risk-moderate {{
         background: linear-gradient(135deg, #FFC107, #FFD54F);
-        color: #1a1a2e;
+        color: #000000;
         box-shadow: 0 4px 15px rgba(255, 193, 7, 0.4);
     }}
     .risk-high {{
@@ -264,6 +316,30 @@ st.markdown(f"""
         color: var(--text-primary);
     }}
 
+    [data-testid="stSidebar"] .stMarkdown p {{
+        color: var(--text-primary);
+    }}
+
+    [data-testid="stSidebar"] .stMarkdown h3 {{
+        color: var(--text-primary);
+    }}
+
+    [data-testid="stSidebar"] label {{
+        color: var(--text-primary) !important;
+    }}
+
+    [data-testid="stSidebar"] .stSelectbox label {{
+        color: var(--text-primary) !important;
+    }}
+
+    [data-testid="stSidebar"] .stNumberInput label {{
+        color: var(--text-primary) !important;
+    }}
+
+    [data-testid="stSidebar"] .stCheckbox label {{
+        color: var(--text-primary) !important;
+    }}
+
     .sidebar-header {{
         font-size: 1.2rem;
         font-weight: 700;
@@ -308,6 +384,29 @@ st.markdown(f"""
         transform: translateY(0);
     }}
 
+    /* Кнопки скачивания */
+    .stDownloadButton > button {{
+        background: linear-gradient(135deg, #4CAF50, #66BB6A);
+        color: var(--text-on-accent);
+        border: none;
+        border-radius: 10px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        font-size: 0.95rem;
+        transition: var(--transition);
+        box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+    }}
+
+    .stDownloadButton > button:hover {{
+        background: linear-gradient(135deg, #66BB6A, #81C784);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(76, 175, 80, 0.5);
+    }}
+
+    .stDownloadButton > button:active {{
+        transform: translateY(0);
+    }}
+
     /* Кнопка переключения темы */
     .theme-toggle {{
         background: var(--bg-card);
@@ -333,15 +432,50 @@ st.markdown(f"""
     .stSelectbox > div > div,
     .stNumberInput > div > div > input,
     .stSlider > div > div {{
-        background: var(--bg-card);
+        background: var(--bg-card) !important;
         border: 1px solid var(--border);
         border-radius: 8px;
         transition: var(--transition);
+        color: var(--text-primary) !important;
     }}
 
     .stSelectbox > div > div:hover,
     .stNumberInput > div > div > input:hover {{
         border-color: var(--accent);
+    }}
+
+    .stSelectbox [data-baseweb="select"] {{
+        background-color: var(--bg-card) !important;
+    }}
+
+    .stSelectbox [data-baseweb="select"] > div {{
+        background-color: var(--bg-card) !important;
+        color: var(--text-primary) !important;
+    }}
+
+    .stNumberInput input {{
+        background-color: var(--bg-card) !important;
+        color: var(--text-primary) !important;
+    }}
+
+    .stCheckbox > label {{
+        color: var(--text-primary) !important;
+    }}
+
+    .stCheckbox > label > div {{
+        color: var(--text-primary) !important;
+    }}
+
+    .stRadio > label {{
+        color: var(--text-primary) !important;
+    }}
+
+    .stRadio [role="radiogroup"] label {{
+        color: var(--text-primary) !important;
+    }}
+
+    .stSlider > label {{
+        color: var(--text-primary) !important;
     }}
 
     /* ===================== МЕТРИКИ STREAMLIT ===================== */
@@ -368,6 +502,7 @@ st.markdown(f"""
         padding: 1rem;
         font-weight: 600;
         transition: var(--transition);
+        color: var(--text-primary) !important;
     }}
 
     .streamlit-expanderHeader:hover {{
@@ -381,6 +516,25 @@ st.markdown(f"""
         border-top: none;
         border-radius: 0 0 12px 12px;
         padding: 1rem;
+        color: var(--text-primary);
+    }}
+
+    /* Dropdown меню */
+    [data-baseweb="popover"] {{
+        background-color: var(--bg-card) !important;
+    }}
+
+    [data-baseweb="menu"] {{
+        background-color: var(--bg-card) !important;
+    }}
+
+    [data-baseweb="menu"] li {{
+        background-color: var(--bg-card) !important;
+        color: var(--text-primary) !important;
+    }}
+
+    [data-baseweb="menu"] li:hover {{
+        background-color: var(--bg-secondary) !important;
     }}
 
     /* ===================== DATAFRAMES ===================== */
@@ -404,7 +558,7 @@ st.markdown(f"""
         position: relative;
         display: inline-flex;
         align-items: center;
-        cursor: help;
+        cursor: pointer;
     }}
 
     .tooltip .tooltip-text {{
@@ -426,6 +580,7 @@ st.markdown(f"""
         font-size: 0.85rem;
         line-height: 1.4;
         transition: opacity 0.3s, visibility 0.3s;
+        pointer-events: none;
     }}
 
     .tooltip .tooltip-text::after {{
@@ -439,9 +594,10 @@ st.markdown(f"""
         border-color: var(--bg-card) transparent transparent transparent;
     }}
 
-    .tooltip:hover .tooltip-text {{
+    .tooltip.active .tooltip-text {{
         visibility: visible;
         opacity: 1;
+        pointer-events: auto;
     }}
 
     .tooltip-icon {{
@@ -676,6 +832,57 @@ st.markdown(f"""
         background: var(--accent);
     }}
 </style>
+
+<script>
+    // Tooltip click handler
+    document.addEventListener('DOMContentLoaded', function() {{
+        // Use event delegation for dynamically added tooltips
+        document.body.addEventListener('click', function(e) {{
+            const tooltip = e.target.closest('.tooltip');
+
+            if (tooltip) {{
+                e.stopPropagation();
+
+                // Close all other tooltips
+                document.querySelectorAll('.tooltip.active').forEach(t => {{
+                    if (t !== tooltip) {{
+                        t.classList.remove('active');
+                    }}
+                }});
+
+                // Toggle current tooltip
+                tooltip.classList.toggle('active');
+            }} else {{
+                // Click outside - close all tooltips
+                document.querySelectorAll('.tooltip.active').forEach(t => {{
+                    t.classList.remove('active');
+                }});
+            }}
+        }});
+    }});
+
+    // Re-attach handler after Streamlit reruns
+    if (window.addEventListener) {{
+        window.addEventListener('load', function() {{
+            setTimeout(function() {{
+                document.body.addEventListener('click', function(e) {{
+                    const tooltip = e.target.closest('.tooltip');
+                    if (tooltip) {{
+                        e.stopPropagation();
+                        document.querySelectorAll('.tooltip.active').forEach(t => {{
+                            if (t !== tooltip) t.classList.remove('active');
+                        }});
+                        tooltip.classList.toggle('active');
+                    }} else {{
+                        document.querySelectorAll('.tooltip.active').forEach(t => {{
+                            t.classList.remove('active');
+                        }});
+                    }}
+                }});
+            }}, 100);
+        }});
+    }}
+</script>
 """, unsafe_allow_html=True)
 
 
@@ -845,14 +1052,26 @@ st.sidebar.markdown("---")
 
 # Переключатель темы
 theme_icon = "🌙" if st.session_state.theme == 'light' else "☀️"
-theme_label = "Тёмная тема" if st.session_state.theme == 'light' else "Светлая тема"
+theme_label = t('dark_theme') if st.session_state.theme == 'light' else t('light_theme')
 
 col_theme1, col_theme2 = st.sidebar.columns([1, 3])
 with col_theme1:
     st.markdown(f"<div style='font-size: 1.5rem; text-align: center;'>{theme_icon}</div>", unsafe_allow_html=True)
 with col_theme2:
-    if st.button(theme_label, key="theme_toggle", width="stretch"):
+    if st.button(theme_label, key="theme_toggle", use_container_width=True):
         toggle_theme()
+        st.rerun()
+
+# Переключатель языка
+lang_icon = "🇰🇬" if st.session_state.language == 'kg' else "🇷🇺"
+lang_label = t('russian_lang') if st.session_state.language == 'kg' else t('kyrgyz_lang')
+
+col_lang1, col_lang2 = st.sidebar.columns([1, 3])
+with col_lang1:
+    st.markdown(f"<div style='font-size: 1.5rem; text-align: center;'>{lang_icon}</div>", unsafe_allow_html=True)
+with col_lang2:
+    if st.button(lang_label, key="lang_toggle", use_container_width=True):
+        toggle_language()
         st.rerun()
 
 st.sidebar.markdown("---")
@@ -918,14 +1137,14 @@ scenario = st.sidebar.selectbox(
 simulation_days = st.sidebar.slider(
     "Период симуляции (дней)",
     min_value=7,
-    max_value=365,
+    max_value=364,  # Changed from 365 to be evenly divisible by step (7)
     value=30,
     step=7,
     help="Количество дней для моделирования гидрологической обстановки"
 )
 
 # Визуальный индикатор периода
-period_percent = (simulation_days - 7) / (365 - 7) * 100
+period_percent = (simulation_days - 7) / (364 - 7) * 100
 st.sidebar.markdown(f'''
 <div style="background: var(--bg-secondary); border-radius: 4px; height: 6px; margin: 0.5rem 0;">
     <div style="background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
@@ -933,10 +1152,8 @@ st.sidebar.markdown(f'''
 </div>
 ''', unsafe_allow_html=True)
 
-# Порог паводка с подсказкой
-st.sidebar.markdown(f'''
-{render_tooltip("🌊 Порог паводка", "Критический уровень расхода воды, при превышении которого объявляется паводковая опасность")}
-''', unsafe_allow_html=True)
+# Порог паводка
+st.sidebar.markdown("### 🌊 Порог паводка")
 
 flood_threshold = st.sidebar.number_input(
     "Порог (м³/с)",
@@ -944,7 +1161,7 @@ flood_threshold = st.sidebar.number_input(
     max_value=500.0,
     value=100.0,
     step=10.0,
-    help="Пороговое значение расхода воды для определения паводковой ситуации"
+    help="Критический уровень расхода воды, при превышении которого объявляется паводковая опасность"
 )
 
 st.sidebar.markdown("---")
@@ -1099,7 +1316,7 @@ st.sidebar.markdown('''
 
 
 # ===================== ОСНОВНОЙ КОНТЕНТ =====================
-st.markdown('<h1 class="main-header">Прогноз паводков в Кыргызстане</h1>', unsafe_allow_html=True)
+st.markdown(f'<h1 class="main-header">{t("title")}</h1>', unsafe_allow_html=True)
 
 # Информация о регионе в виде карточек
 region_config = REGIONS[selected_region]
@@ -1107,23 +1324,23 @@ col1, col2, col3, col4 = st.columns(4)
 
 with col1:
     st.markdown(render_metric_card(
-        "📍", "Регион", region_config.name,
+        "📍", t("region"), region_config.name,
         "Выбранный регион для мониторинга паводковой обстановки"
     ), unsafe_allow_html=True)
 with col2:
     st.markdown(render_metric_card(
-        "📐", "Площадь", f"{region_config.area_km2:,} км²",
+        "📐", t("area"), f"{region_config.area_km2:,} км²",
         "Общая площадь водосборного бассейна региона"
     ), unsafe_allow_html=True)
 with col3:
     st.markdown(render_metric_card(
-        "⛰️", "Высота", f"{region_config.avg_elevation} м",
+        "⛰️", t("elevation"), f"{region_config.avg_elevation} м",
         "Средняя высота над уровнем моря"
     ), unsafe_allow_html=True)
 with col4:
     rivers_text = ", ".join(region_config.main_rivers[:2])
     st.markdown(render_metric_card(
-        "🏔️", "Реки", rivers_text,
+        "🏔️", t("rivers"), rivers_text,
         f"Основные реки: {', '.join(region_config.main_rivers)}"
     ), unsafe_allow_html=True)
 
@@ -1131,20 +1348,19 @@ st.markdown("---")
 
 # Вкладки
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-    "📊 Симуляция",
-    "🤖 ML Прогноз",
-    "🗺️ Карта",
-    "📈 Анализ",
-    "⚠️ События",
-    "📉 Расширенные графики"
+    f"📊 {t('simulation')}",
+    f"🤖 {t('ml_prediction')}",
+    f"🗺️ {t('map')}",
+    f"📈 {t('analysis')}",
+    f"⚠️ {t('events')}",
+    f"📉 {t('advanced_charts')}"
 ])
 
 
 # ===================== ВКЛАДКА СИМУЛЯЦИИ =====================
 with tab1:
-    st.markdown(f'''
+    st.markdown('''
     <div class="section-header">📊 Гидрологическая симуляция</div>
-    {render_tooltip("", "Моделирование водного баланса и расчёт гидрографа стока на основе метеорологических данных")}
     ''', unsafe_allow_html=True)
 
     # Инициализация состояния сессии
@@ -1198,6 +1414,39 @@ with tab1:
     if st.session_state.simulation_results is not None:
         results = st.session_state.simulation_results
         input_data = st.session_state.input_data
+
+        # Кнопка экспорта
+        col_exp1, col_exp2, col_exp3, col_exp4 = st.columns([2, 1, 1, 2])
+        with col_exp2:
+            csv_data = results.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="💾 Скачать CSV",
+                data=csv_data,
+                file_name=f"simulation_results_{selected_region}.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+        with col_exp3:
+            # Конвертируем DataFrame в JSON (с обработкой numpy типов)
+            import json
+            results_dict = results.copy()
+            # Конвертируем все колонки в нативные Python типы
+            for col in results_dict.columns:
+                if results_dict[col].dtype == 'datetime64[ns]':
+                    results_dict[col] = results_dict[col].astype(str)
+                else:
+                    results_dict[col] = results_dict[col].apply(lambda x: float(x) if isinstance(x, (np.integer, np.floating)) else x)
+
+            json_string = json.dumps(results_dict.to_dict(orient='records'), indent=2, ensure_ascii=False)
+            st.download_button(
+                label="📄 Скачать JSON",
+                data=json_string,
+                file_name=f"simulation_results_{selected_region}.json",
+                mime="application/json",
+                use_container_width=True
+            )
+
+        st.markdown("---")
 
         # Метрики
         col1, col2, col3, col4 = st.columns(4)
@@ -1313,6 +1562,30 @@ with tab1:
 with tab2:
     st.subheader("🤖 Машинное обучение для прогноза паводков")
 
+    # Проверка доступных обученных моделей для всех регионов
+    from pathlib import Path
+    models_dir = Path('models')
+    all_trained_models = []
+    if models_dir.exists():
+        all_trained_models = list(models_dir.glob('flood_predictor_*_real.joblib'))
+
+    if all_trained_models:
+        with st.expander(f"📦 Обученные модели ({len(all_trained_models)} доступно)", expanded=False):
+            cols = st.columns(3)
+            for idx, model_path in enumerate(all_trained_models):
+                model_name = model_path.stem
+                region_name = model_name.split('_')[2] if len(model_name.split('_')) > 2 else 'unknown'
+                file_size = model_path.stat().st_size / (1024 * 1024)
+
+                with cols[idx % 3]:
+                    st.markdown(f"""
+                    <div class="metric-card" style="text-align: center;">
+                        <div style="font-size: 2rem;">🎯</div>
+                        <div class="metric-label">{region_name.upper()}</div>
+                        <div class="metric-value" style="font-size: 1rem;">{file_size:.1f} MB</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
     if not enable_ml:
         st.info("Включите ML прогноз в боковой панели")
     else:
@@ -1335,7 +1608,7 @@ with tab2:
                         ''', unsafe_allow_html=True)
                     with cap_col2:
                         cal_status = "Да" if predictor.use_calibration else "Нет"
-                        cal_color = "#4CAF50" if predictor.use_calibration else "#9E9E9E"
+                        cal_color = "#4CAF50" if predictor.use_calibration else "var(--text-secondary)"
                         st.markdown(f'''
                         <div class="metric-card">
                             <div class="metric-label">Калибровка</div>
@@ -1344,7 +1617,7 @@ with tab2:
                         ''', unsafe_allow_html=True)
                     with cap_col3:
                         fs_status = "Да" if predictor.use_feature_selection else "Нет"
-                        fs_color = "#4CAF50" if predictor.use_feature_selection else "#9E9E9E"
+                        fs_color = "#4CAF50" if predictor.use_feature_selection else "var(--text-secondary)"
                         st.markdown(f'''
                         <div class="metric-card">
                             <div class="metric-label">Отбор признаков</div>
@@ -1353,7 +1626,7 @@ with tab2:
                         ''', unsafe_allow_html=True)
                     with cap_col4:
                         stack_status = "Да" if predictor.stacking_model is not None else "Нет"
-                        stack_color = "#4CAF50" if predictor.stacking_model is not None else "#9E9E9E"
+                        stack_color = "#4CAF50" if predictor.stacking_model is not None else "var(--text-secondary)"
                         st.markdown(f'''
                         <div class="metric-card">
                             <div class="metric-label">Стекинг</div>
@@ -1461,12 +1734,255 @@ with tab2:
                 else:
                     st.warning("ML модель не обучена")
 
-                    if st.button("🎓 Обучить модель"):
-                        with st.spinner("Обучение модели (может занять время)..."):
-                            data = generate_training_data(region=selected_region, days=365)
-                            metrics = predictor.train(data)
-                            st.success("Модель обучена!")
-                            st.rerun()
+                    # Проверка доступных обученных моделей
+                    from pathlib import Path
+                    models_dir = Path('models')
+                    available_models = []
+                    if models_dir.exists():
+                        available_models = list(models_dir.glob('flood_predictor_*_real.joblib'))
+
+                    if available_models:
+                        st.info(f"📦 Найдено {len(available_models)} обученных моделей")
+
+                        # Показать доступные модели
+                        with st.expander("📋 Доступные обученные модели"):
+                            for model_path in available_models:
+                                model_name = model_path.stem
+                                region_name = model_name.split('_')[2] if len(model_name.split('_')) > 2 else 'unknown'
+
+                                col1, col2, col3 = st.columns([3, 2, 2])
+                                with col1:
+                                    st.text(f"🎯 {model_name}")
+                                with col2:
+                                    file_size = model_path.stat().st_size / (1024 * 1024)
+                                    st.text(f"📊 {file_size:.1f} MB")
+                                with col3:
+                                    if st.button("Загрузить", key=f"load_{model_name}"):
+                                        try:
+                                            from src.models.ml_predictor import FloodMLPredictor
+                                            loaded_predictor = FloodMLPredictor.load_model(str(model_path))
+                                            st.session_state[f'ml_predictor_{selected_region}'] = loaded_predictor
+                                            st.success(f"✅ Модель {region_name} загружена!")
+                                            st.rerun()
+                                        except Exception as e:
+                                            st.error(f"Ошибка загрузки: {e}")
+
+                    st.markdown("---")
+                    st.markdown("### 🎓 Обучить новую модель")
+
+                    # Выбор типа данных
+                    data_source = st.radio(
+                        "Источник данных:",
+                        ["Синтетические данные (быстро)", "Реальные данные Open-Meteo (рекомендуется)"],
+                        key="data_source_radio"
+                    )
+
+                    if data_source.startswith("Синтетические"):
+                        st.info("💡 Синтетические данные хороши для быстрого тестирования")
+
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            training_days = st.slider("Дней для обучения", 30, 730, 365)
+                        with col2:
+                            model_type = st.selectbox(
+                                "Тип модели",
+                                ['rf', 'xgb', 'lgb', 'ensemble'],
+                                index=3,
+                                format_func=lambda x: {
+                                    'rf': 'Random Forest',
+                                    'xgb': 'XGBoost',
+                                    'lgb': 'LightGBM',
+                                    'ensemble': 'Ансамбль (лучшее качество)'
+                                }[x]
+                            )
+
+                        if st.button("🎓 Обучить на синтетических данных", type="primary"):
+                            with st.spinner("Обучение модели (может занять время)..."):
+                                from src.models.ml_predictor import generate_training_data
+                                data = generate_training_data(
+                                    region=selected_region,
+                                    days=training_days,
+                                    include_floods=True
+                                )
+                                predictor = FloodMLPredictor(model_type=model_type)
+                                metrics = predictor.train(data)
+
+                                # Сохранение модели
+                                model_path = f'models/flood_predictor_{selected_region}_synthetic.joblib'
+                                predictor.save_model(model_path)
+
+                                st.success("✅ Модель обучена на синтетических данных!")
+                                st.json(metrics)
+                                st.rerun()
+
+                    else:  # Реальные данные
+                        st.success("✅ Реальные данные из Open-Meteo API - лучший выбор для производства")
+
+                        # Проверка наличия базы данных паводков
+                        flood_db_path = Path('data/FloodArchive.csv')
+                        has_flood_db = flood_db_path.exists()
+
+                        if has_flood_db:
+                            st.success("✅ База данных паводков DFO найдена")
+                        else:
+                            st.warning("⚠️ База данных паводков не найдена")
+                            st.info("Будет использован пороговый метод (менее точно)")
+                            with st.expander("ℹ️ Как получить базу данных паводков?"):
+                                st.markdown("""
+                                **Варианты получения исторических данных о паводках:**
+
+                                1. **Dartmouth Flood Observatory (DFO)**
+                                   - Email: kettner@colorado.edu
+                                   - Запросить FloodArchive.csv
+
+                                2. **EM-DAT**: https://www.emdat.be/
+                                   - Регистрация бесплатна для исследователей
+
+                                3. **МЧС Кыргызстана**: https://mes.kg/
+                                   - Наиболее точные локальные данные
+
+                                Подробнее см.: `data/README_FLOOD_DATA.md`
+                                """)
+
+                        # Параметры обучения
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            start_date = st.date_input(
+                                "Начальная дата",
+                                value=pd.to_datetime("2020-01-01"),
+                                min_value=pd.to_datetime("2010-01-01"),
+                                max_value=pd.to_datetime("2023-12-31")
+                            )
+                        with col2:
+                            end_date = st.date_input(
+                                "Конечная дата",
+                                value=pd.to_datetime("2023-12-31"),
+                                min_value=pd.to_datetime("2010-01-01"),
+                                max_value=pd.to_datetime("2024-12-31")
+                            )
+
+                        col3, col4 = st.columns(2)
+                        with col3:
+                            model_type_real = st.selectbox(
+                                "Тип модели",
+                                ['rf', 'xgb', 'lgb', 'ensemble'],
+                                index=3,
+                                key="model_type_real",
+                                format_func=lambda x: {
+                                    'rf': 'Random Forest',
+                                    'xgb': 'XGBoost',
+                                    'lgb': 'LightGBM',
+                                    'ensemble': 'Ансамбль (рекомендуется)'
+                                }[x]
+                            )
+                        with col4:
+                            optimize = st.checkbox(
+                                "Оптимизация гиперпараметров",
+                                help="Улучшает качество, но занимает ~30+ минут"
+                            )
+
+                        # Расчет количества дней
+                        days_count = (end_date - start_date).days
+                        hours_count = days_count * 24
+
+                        st.info(f"📊 Период обучения: {days_count} дней (~{hours_count:,} часовых записей)")
+
+                        if days_count < 30:
+                            st.warning("⚠️ Рекомендуется минимум 30 дней для обучения")
+                        elif days_count < 365:
+                            st.info("💡 Для лучших результатов рекомендуется 1+ год данных")
+                        else:
+                            st.success("✅ Отличный период для обучения!")
+
+                        if st.button("🚀 Обучить на реальных данных", type="primary"):
+                            with st.spinner(f"Обучение модели на реальных данных ({days_count} дней)..."):
+                                try:
+                                    from src.models.ml_predictor import generate_training_data_real, FloodMLPredictor
+                                    from src.data.flood_database import load_kyrgyzstan_floods
+
+                                    progress_bar = st.progress(0)
+                                    status_text = st.empty()
+
+                                    # Шаг 1: Загрузка исторических паводков
+                                    status_text.text("📥 Загрузка базы данных паводков...")
+                                    progress_bar.progress(10)
+
+                                    flood_events = None
+                                    if has_flood_db:
+                                        try:
+                                            flood_events = load_kyrgyzstan_floods('data/FloodArchive.csv')
+                                            st.info(f"✅ Загружено {len(flood_events)} событий паводков")
+                                        except Exception as e:
+                                            st.warning(f"Ошибка загрузки БД паводков: {e}")
+
+                                    # Шаг 2: Генерация обучающих данных
+                                    status_text.text("🌦️ Загрузка реальных метеоданных из Open-Meteo...")
+                                    progress_bar.progress(30)
+
+                                    training_data = generate_training_data_real(
+                                        region=selected_region,
+                                        start_date=start_date.strftime('%Y-%m-%d'),
+                                        end_date=end_date.strftime('%Y-%m-%d'),
+                                        flood_events=flood_events
+                                    )
+
+                                    flood_count = training_data['flood'].sum() if 'flood' in training_data.columns else 0
+                                    flood_pct = (flood_count / len(training_data)) * 100 if len(training_data) > 0 else 0
+
+                                    st.info(f"✅ Загружено {len(training_data):,} записей")
+                                    st.info(f"🌊 Паводковые часы: {flood_count} ({flood_pct:.2f}%)")
+
+                                    if flood_count == 0:
+                                        st.error("❌ Нет паводковых событий в данных! Обучение невозможно.")
+                                        st.warning("Проверьте наличие базы данных паводков или выберите другой период.")
+                                    else:
+                                        # Шаг 3: Обучение модели
+                                        status_text.text("🎓 Обучение ML модели...")
+                                        progress_bar.progress(60)
+
+                                        predictor = FloodMLPredictor(model_type=model_type_real)
+                                        metrics = predictor.train(
+                                            training_data,
+                                            target_column='flood',
+                                            test_size=0.2,
+                                            use_feature_selection=True,
+                                            optimize_hyperparameters=optimize
+                                        )
+
+                                        progress_bar.progress(90)
+
+                                        # Шаг 4: Сохранение модели
+                                        status_text.text("💾 Сохранение модели...")
+                                        model_path = f'models/flood_predictor_{selected_region}_real.joblib'
+                                        Path('models').mkdir(exist_ok=True)
+                                        predictor.save_model(model_path)
+
+                                        progress_bar.progress(100)
+                                        status_text.text("✅ Готово!")
+
+                                        st.success(f"✅ Модель успешно обучена и сохранена!")
+                                        st.success(f"📁 Файл: {model_path}")
+
+                                        # Показать метрики
+                                        st.markdown("### 📊 Метрики производительности")
+                                        if isinstance(metrics, dict):
+                                            if 'accuracy' in metrics:
+                                                col1, col2, col3 = st.columns(3)
+                                                with col1:
+                                                    st.metric("Accuracy", f"{metrics.get('accuracy', 0):.2%}")
+                                                with col2:
+                                                    st.metric("F1 Score", f"{metrics.get('f1_score', 0):.2%}")
+                                                with col3:
+                                                    st.metric("ROC-AUC", f"{metrics.get('roc_auc', 0):.2%}")
+                                            else:
+                                                st.json(metrics)
+
+                                        st.balloons()
+                                        st.rerun()
+
+                                except Exception as e:
+                                    st.error(f"❌ Ошибка обучения: {str(e)}")
+                                    st.exception(e)
 
             except Exception as e:
                 st.error(f"Ошибка ML модели: {str(e)}")
@@ -1474,91 +1990,102 @@ with tab2:
 
 # ===================== ВКЛАДКА КАРТЫ =====================
 with tab3:
-    st.subheader("🗺️ Карта региона")
+    st.subheader(f"🗺️ {t('map')} {REGIONS[selected_region].name}")
 
-    region_config = REGIONS[selected_region]
+    # Проверка изменения региона для перестройки карты
+    map_key = f"map_{selected_region}"
+    rebuild_map = map_key not in st.session_state or st.button("🔄 Обновить карту", key="refresh_map")
 
-    # Центр карты
-    center_lat = (region_config.lat_min + region_config.lat_max) / 2
-    center_lon = (region_config.lon_min + region_config.lon_max) / 2
+    if rebuild_map:
+        region_config = REGIONS[selected_region]
 
-    # Создание карты
-    m = folium.Map(
-        location=[center_lat, center_lon],
-        zoom_start=8,
-        tiles='OpenStreetMap'
-    )
+        # Центр карты
+        center_lat = (region_config.lat_min + region_config.lat_max) / 2
+        center_lon = (region_config.lon_min + region_config.lon_max) / 2
 
-    # Добавление слоев
-    folium.TileLayer(
-        tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Terrain_Base/MapServer/tile/{z}/{y}/{x}',
-        attr='Esri',
-        name='Terrain',
-        overlay=False,
-        control=True
-    ).add_to(m)
-    folium.TileLayer('CartoDB positron', name='Light', attr='© CartoDB').add_to(m)
+        # Создание карты
+        m = folium.Map(
+            location=[center_lat, center_lon],
+            zoom_start=8,
+            tiles='OpenStreetMap'
+        )
 
-    # Границы региона
-    bounds = [
-        [region_config.lat_min, region_config.lon_min],
-        [region_config.lat_min, region_config.lon_max],
-        [region_config.lat_max, region_config.lon_max],
-        [region_config.lat_max, region_config.lon_min],
-        [region_config.lat_min, region_config.lon_min]
-    ]
+        # Добавление слоев
+        folium.TileLayer(
+            tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Terrain_Base/MapServer/tile/{z}/{y}/{x}',
+            attr='Esri',
+            name='Terrain',
+            overlay=False,
+            control=True
+        ).add_to(m)
+        folium.TileLayer('CartoDB positron', name='Light', attr='© CartoDB').add_to(m)
 
-    folium.Polygon(
-        locations=bounds,
-        color='blue',
-        weight=2,
-        fill=True,
-        fillColor='blue',
-        fillOpacity=0.1,
-        popup=f'Регион: {region_config.name}'
-    ).add_to(m)
+        # Границы региона
+        bounds = [
+            [region_config.lat_min, region_config.lon_min],
+            [region_config.lat_min, region_config.lon_max],
+            [region_config.lat_max, region_config.lon_max],
+            [region_config.lat_max, region_config.lon_min],
+            [region_config.lat_min, region_config.lon_min]
+        ]
 
-    # Маркеры рек
-    for river in region_config.main_rivers:
-        # Случайное положение внутри региона
-        lat = np.random.uniform(region_config.lat_min + 0.2, region_config.lat_max - 0.2)
-        lon = np.random.uniform(region_config.lon_min + 0.2, region_config.lon_max - 0.2)
-
-        folium.Marker(
-            location=[lat, lon],
-            popup=f'Река: {river}',
-            icon=folium.Icon(color='blue', icon='tint', prefix='fa')
+        folium.Polygon(
+            locations=bounds,
+            color='blue',
+            weight=2,
+            fill=True,
+            fillColor='blue',
+            fillOpacity=0.1,
+            popup=f'Регион: {region_config.name}'
         ).add_to(m)
 
-    # Добавление точек риска если есть результаты
-    if st.session_state.simulation_results is not None:
-        results = st.session_state.simulation_results
+        # Маркеры рек
+        for river in region_config.main_rivers:
+            # Случайное положение внутри региона
+            lat = np.random.uniform(region_config.lat_min + 0.2, region_config.lat_max - 0.2)
+            lon = np.random.uniform(region_config.lon_min + 0.2, region_config.lon_max - 0.2)
 
-        # Найти периоды высокого риска
-        high_risk = results[results['risk_level'].isin(['high', 'critical'])]
+            folium.Marker(
+                location=[lat, lon],
+                popup=f'Река: {river}',
+                icon=folium.Icon(color='blue', icon='tint', prefix='fa')
+            ).add_to(m)
 
-        if len(high_risk) > 0:
-            # Добавить маркеры для зон риска
-            for idx, row in high_risk.iloc[::24].iterrows():  # Каждые 24 часа
-                lat = np.random.uniform(region_config.lat_min + 0.1, region_config.lat_max - 0.1)
-                lon = np.random.uniform(region_config.lon_min + 0.1, region_config.lon_max - 0.1)
+        # Добавление точек риска если есть результаты
+        if st.session_state.simulation_results is not None:
+            results = st.session_state.simulation_results
 
-                color = 'red' if row['risk_level'] == 'critical' else 'orange'
+            # Найти периоды высокого риска
+            high_risk = results[results['risk_level'].isin(['high', 'critical'])]
 
-                folium.CircleMarker(
-                    location=[lat, lon],
-                    radius=10,
-                    color=color,
-                    fill=True,
-                    fillColor=color,
-                    fillOpacity=0.5,
-                    popup=f"Риск: {get_risk_label(row['risk_level'])}<br>Расход: {row['discharge_m3s']:.1f} м³/с"
-                ).add_to(m)
+            if len(high_risk) > 0:
+                # Добавить маркеры для зон риска
+                for idx, row in high_risk.iloc[::24].iterrows():  # Каждые 24 часа
+                    lat = np.random.uniform(region_config.lat_min + 0.1, region_config.lat_max - 0.1)
+                    lon = np.random.uniform(region_config.lon_min + 0.1, region_config.lon_max - 0.1)
 
-    folium.LayerControl().add_to(m)
+                    color = 'red' if row['risk_level'] == 'critical' else 'orange'
+
+                    folium.CircleMarker(
+                        location=[lat, lon],
+                        radius=10,
+                        color=color,
+                        fill=True,
+                        fillColor=color,
+                        fillOpacity=0.5,
+                        popup=f"Риск: {get_risk_label(row['risk_level'])}<br>Расход: {row['discharge_m3s']:.1f} м³/с"
+                    ).add_to(m)
+
+        folium.LayerControl().add_to(m)
+
+        # Сохранить карту в session state
+        st.session_state[map_key] = m
+    else:
+        # Использовать сохраненную карту
+        m = st.session_state[map_key]
 
     # Отображение карты
-    st_folium(m, width=None, height=500)
+    st_folium(m, width=None, height=500, key=f"folium_{map_key}")
 
     # Легенда
     st.markdown("""
