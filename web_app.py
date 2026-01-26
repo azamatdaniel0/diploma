@@ -1489,8 +1489,14 @@ with tab3:
     )
 
     # Добавление слоев
-    folium.TileLayer('Stamen Terrain', name='Terrain').add_to(m)
-    folium.TileLayer('CartoDB positron', name='Light').add_to(m)
+    folium.TileLayer(
+        tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Terrain_Base/MapServer/tile/{z}/{y}/{x}',
+        attr='Esri',
+        name='Terrain',
+        overlay=False,
+        control=True
+    ).add_to(m)
+    folium.TileLayer('CartoDB positron', name='Light', attr='© CartoDB').add_to(m)
 
     # Границы региона
     bounds = [
