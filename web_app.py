@@ -10,25 +10,23 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from datetime import datetime, timedelta
+from datetime import timedelta
 import folium
 from streamlit_folium import st_folium
-import json
 from pathlib import Path
 
 # Импорт модулей проекта
 import sys
 sys.path.insert(0, str(Path(__file__).parent))
 
-from src.config import REGIONS, RegionConfig
-from src.models.flood_model import FloodModel, FloodRiskLevel
+from src.config import REGIONS
+from src.models.flood_model import FloodModel
 from src.models.ml_predictor import FloodMLPredictor, generate_training_data
 from src.utils.helpers import generate_sample_data
 from src.data.weather_api import (
     get_weather_data_for_model,
     KyrgyzstanWeatherLoader,
-    WeatherAPIError,
-    clear_weather_cache
+    WeatherAPIError
 )
 from src.visualization.enhanced_charts import (
     create_animated_hydrograph,
@@ -853,7 +851,7 @@ col_theme1, col_theme2 = st.sidebar.columns([1, 3])
 with col_theme1:
     st.markdown(f"<div style='font-size: 1.5rem; text-align: center;'>{theme_icon}</div>", unsafe_allow_html=True)
 with col_theme2:
-    if st.button(theme_label, key="theme_toggle", use_container_width=True):
+    if st.button(theme_label, key="theme_toggle", width="stretch"):
         toggle_theme()
         st.rerun()
 
@@ -1023,7 +1021,7 @@ st.sidebar.markdown("---")
 run_simulation_btn = st.sidebar.button(
     "▶️ Запустить симуляцию",
     type="primary",
-    use_container_width=True,
+    width="stretch",
     help="Запустить гидрологическое моделирование с выбранными параметрами"
 )
 
@@ -1289,7 +1287,7 @@ with tab1:
             margin=dict(l=60, r=20, t=40, b=20)
         )
 
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
         # Уровни риска
         st.markdown("### ⚠️ Распределение уровней риска")
@@ -1308,7 +1306,7 @@ with tab1:
             hole=0.4
         )
         fig_risk.update_layout(height=300)
-        st.plotly_chart(fig_risk, use_container_width=True)
+        st.plotly_chart(fig_risk, width="stretch")
 
 
 # ===================== ВКЛАДКА ML ПРОГНОЗА =====================
@@ -1371,7 +1369,7 @@ with tab2:
                         metrics_df = pd.DataFrame(predictor.training_metrics).T
                         st.dataframe(
                             metrics_df.style.format("{:.4f}").background_gradient(cmap='RdYlGn', axis=None),
-                            use_container_width=True
+                            width="stretch"
                         )
 
                         # Лучшие гиперпараметры (если были оптимизированы)
@@ -1395,7 +1393,7 @@ with tab2:
                             color_continuous_scale='Blues'
                         )
                         fig_imp.update_layout(height=500, yaxis={'categoryorder': 'total ascending'})
-                        st.plotly_chart(fig_imp, use_container_width=True)
+                        st.plotly_chart(fig_imp, width="stretch")
 
                     # Прогноз
                     st.markdown("### 🔮 Прогноз")
@@ -1447,7 +1445,7 @@ with tab2:
                                     height=400
                                 )
 
-                                st.plotly_chart(fig_forecast, use_container_width=True)
+                                st.plotly_chart(fig_forecast, width="stretch")
 
                                 # Таблица прогноза
                                 st.dataframe(
@@ -1455,7 +1453,7 @@ with tab2:
                                         'flood_probability': '{:.2%}',
                                         'prediction_confidence': '{:.2%}'
                                     }).background_gradient(subset=['flood_probability'], cmap='RdYlGn_r'),
-                                    use_container_width=True
+                                    width="stretch"
                                 )
                     else:
                         st.info("Сначала запустите симуляцию на вкладке 'Симуляция'")
@@ -1560,7 +1558,7 @@ with tab3:
     folium.LayerControl().add_to(m)
 
     # Отображение карты
-    st_folium(m, width=None, height=500, use_container_width=True)
+    st_folium(m, width=None, height=500)
 
     # Легенда
     st.markdown("""
@@ -1592,7 +1590,7 @@ with tab4:
             )
             fig_dist.add_vline(x=flood_threshold, line_dash="dash", line_color="red",
                               annotation_text="Порог")
-            st.plotly_chart(fig_dist, use_container_width=True)
+            st.plotly_chart(fig_dist, width="stretch")
 
         with col2:
             # Корреляция осадков и расхода
@@ -1609,7 +1607,7 @@ with tab4:
                 title='Осадки vs Расход',
                 labels={'x': 'Осадки (мм)', 'y': 'Расход (м³/с)'}
             )
-            st.plotly_chart(fig_scatter, use_container_width=True)
+            st.plotly_chart(fig_scatter, width="stretch")
 
         # Временная динамика
         st.markdown("### 📅 Суточная динамика")
@@ -1641,7 +1639,7 @@ with tab4:
         fig_daily.update_yaxes(title_text="Сток (мм)", secondary_y=False)
         fig_daily.update_yaxes(title_text="Расход (м³/с)", secondary_y=True)
 
-        st.plotly_chart(fig_daily, use_container_width=True)
+        st.plotly_chart(fig_daily, width="stretch")
 
         # Статистика
         st.markdown("### 📊 Сводная статистика")
@@ -1685,7 +1683,7 @@ with tab4:
                 value_column='discharge_m3s',
                 title='Календарь паводкового риска'
             )
-            st.plotly_chart(fig_calendar, use_container_width=True)
+            st.plotly_chart(fig_calendar, width="stretch")
         except Exception as e:
             st.warning(f"Не удалось создать календарную тепловую карту: {e}")
 
@@ -1719,7 +1717,7 @@ with tab4:
                     scenario_results,
                     flood_threshold=flood_threshold
                 )
-                st.plotly_chart(fig_comparison, use_container_width=True)
+                st.plotly_chart(fig_comparison, width="stretch")
 
                 # Таблица сводки по сценариям
                 st.markdown("#### Сводка по сценариям")
@@ -1738,7 +1736,7 @@ with tab4:
                     })
 
                 comparison_df = pd.DataFrame(comparison_stats)
-                st.dataframe(comparison_df, use_container_width=True, hide_index=True)
+                st.dataframe(comparison_df, width="stretch", hide_index=True)
 
             except Exception as e:
                 st.warning(f"Не удалось создать сравнение сценариев: {e}")
@@ -1754,7 +1752,7 @@ with tab4:
                 flood_threshold=flood_threshold,
                 animation_speed=100
             )
-            st.plotly_chart(fig_animated, use_container_width=True)
+            st.plotly_chart(fig_animated, width="stretch")
             st.info("Используйте кнопки управления для воспроизведения анимации или перемещайте слайдер для просмотра конкретных дней.")
         except Exception as e:
             st.warning(f"Не удалось создать анимированный гидрограф: {e}")
@@ -1767,11 +1765,11 @@ with tab4:
             col_corr1, col_corr2 = st.columns([1, 1])
             with col_corr1:
                 fig_corr = create_correlation_matrix(results, input_data)
-                st.plotly_chart(fig_corr, use_container_width=True)
+                st.plotly_chart(fig_corr, width="stretch")
             with col_corr2:
                 # Расширенная диаграмма распределения риска
                 fig_risk_dist = create_risk_distribution_chart(results, chart_type='pie')
-                st.plotly_chart(fig_risk_dist, use_container_width=True)
+                st.plotly_chart(fig_risk_dist, width="stretch")
         except Exception as e:
             st.warning(f"Не удалось создать корреляционный анализ: {e}")
 
@@ -1838,7 +1836,7 @@ with tab5:
                 },
                 title='Сравнение паводковых событий'
             )
-            st.plotly_chart(fig_events, use_container_width=True)
+            st.plotly_chart(fig_events, width="stretch")
 
     elif st.session_state.simulation_results is not None:
         st.info("🎉 Паводковых событий не обнаружено в данном периоде")
@@ -1888,7 +1886,7 @@ with tab6:
                 flood_threshold=flood_threshold,
                 animation_speed=animation_speed
             )
-            st.plotly_chart(fig_animated, use_container_width=True, config=chart_config)
+            st.plotly_chart(fig_animated, width="stretch", config=chart_config)
 
             # Улучшенный статический гидрограф
             st.markdown("---")
@@ -1896,7 +1894,7 @@ with tab6:
             fig_enhanced = create_enhanced_hydrograph(
                 results, input_data, flood_threshold, show_risk_zones=True
             )
-            st.plotly_chart(fig_enhanced, use_container_width=True, config=chart_config)
+            st.plotly_chart(fig_enhanced, width="stretch", config=chart_config)
 
         with viz_tab2:
             st.markdown("### 📅 Календарь риска паводков")
@@ -1910,7 +1908,7 @@ with tab6:
                 value_column='discharge_m3s',
                 title='Обзор ежедневного риска паводков'
             )
-            st.plotly_chart(fig_calendar, use_container_width=True, config=chart_config)
+            st.plotly_chart(fig_calendar, width="stretch", config=chart_config)
 
             # Диаграмма распределения риска
             st.markdown("### 📊 Распределение уровней риска")
@@ -1924,7 +1922,7 @@ with tab6:
             )
 
             fig_risk = create_risk_distribution_chart(results, chart_type=chart_type)
-            st.plotly_chart(fig_risk, use_container_width=True, config=chart_config)
+            st.plotly_chart(fig_risk, width="stretch", config=chart_config)
 
         with viz_tab3:
             st.markdown("### ⚖️ Сравнение сценариев")
@@ -1957,7 +1955,7 @@ with tab6:
                         scenarios,
                         flood_threshold=flood_threshold
                     )
-                    st.plotly_chart(fig_comparison, use_container_width=True, config=chart_config)
+                    st.plotly_chart(fig_comparison, width="stretch", config=chart_config)
 
                     # Сводная таблица по сценариям
                     st.markdown("### 📋 Сводка по сценариям")
@@ -1980,7 +1978,7 @@ with tab6:
             """)
 
             fig_corr = create_correlation_matrix(results, input_data)
-            st.plotly_chart(fig_corr, use_container_width=True, config=chart_config)
+            st.plotly_chart(fig_corr, width="stretch", config=chart_config)
 
             # Индикаторы в виде манометров
             st.markdown("### 🎯 Индикаторы в реальном времени")
@@ -2004,7 +2002,7 @@ with tab6:
                             'high': flood_threshold
                         }
                     )
-                    st.plotly_chart(fig_gauge1, use_container_width=True, config=chart_config)
+                    st.plotly_chart(fig_gauge1, width="stretch", config=chart_config)
 
                 with col2:
                     total_precip = input_data['precipitation_mm'].sum()
@@ -2019,7 +2017,7 @@ with tab6:
                             'high': max_expected * 0.75
                         }
                     )
-                    st.plotly_chart(fig_gauge2, use_container_width=True, config=chart_config)
+                    st.plotly_chart(fig_gauge2, width="stretch", config=chart_config)
 
                 with col3:
                     flood_hours = (results['discharge_m3s'] > flood_threshold).sum()
@@ -2034,7 +2032,7 @@ with tab6:
                             'high': total_hours * 0.2
                         }
                     )
-                    st.plotly_chart(fig_gauge3, use_container_width=True, config=chart_config)
+                    st.plotly_chart(fig_gauge3, width="stretch", config=chart_config)
 
         # Секция экспорта
         st.markdown("---")
