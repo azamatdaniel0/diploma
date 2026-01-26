@@ -14,6 +14,7 @@ from datetime import timedelta
 import folium
 from streamlit_folium import st_folium
 from pathlib import Path
+import html
 
 # Импорт модулей проекта
 import sys
@@ -56,6 +57,39 @@ if 'theme' not in st.session_state:
 # Инициализация языка
 if 'language' not in st.session_state:
     st.session_state.language = 'ru'  # ru or kg
+
+# Инициализация результатов симуляции с default данными
+if 'simulation_results' not in st.session_state:
+    try:
+        # Загружаем предварительно сгенерированные данные для быстрого старта
+        default_data = generate_default_simulation_data(region='chui', days=91, scenario='wet')
+        st.session_state.simulation_results = default_data['results']
+        st.session_state.input_data = default_data['input_data']
+        st.session_state.flood_events = default_data['events']
+        st.session_state.data_loaded = True
+    except Exception as e:
+        # Если не удалось загрузить default данные, инициализируем пустыми
+        st.session_state.simulation_results = None
+        st.session_state.input_data = None
+        st.session_state.flood_events = []
+        st.session_state.data_loaded = False
+
+# Инициализация состояния фонового обучения ML
+if 'ml_training_started' not in st.session_state:
+    st.session_state.ml_training_started = False
+    # Запускаем фоновое обучение ML модели
+    try:
+        # Используем threading для неблокирующего обучения
+        import threading
+        training_thread = threading.Thread(
+            target=train_ml_model_background,
+            args=('chui', 365),
+            daemon=True
+        )
+        training_thread.start()
+        st.session_state.ml_training_started = True
+    except Exception as e:
+        pass  # Тихо игнорируем ошибки фонового обучения
 
 def toggle_theme():
     """Переключение темы."""
@@ -991,6 +1025,55 @@ def get_flood_model(region: str) -> FloodModel:
     return FloodModel(region=region)
 
 
+@st.cache_data(ttl=7200)
+def generate_default_simulation_data(region: str = 'chui', days: int = 90, scenario: str = 'wet'):
+    """
+    Генерация демонстрационных данных симуляции при запуске.
+    Используется для быстрого отображения результатов без ожидания.
+    """
+    # Генерация входных данных
+    input_data = generate_sample_data(region=region, days=days, scenario=scenario, ensure_events=True)
+
+    # Запуск симуляции
+    model = FloodModel(region=region)
+    model.initialize_state(input_data['timestamp'].iloc[0])
+    results = model.run_simulation(input_data)
+
+    # Выявление паводковых событий
+    events = model.detect_flood_events(results, flood_threshold=100.0)
+
+    return {
+        'input_data': input_data,
+        'results': results,
+        'events': events,
+        'model_params': model.params
+    }
+
+
+def train_ml_model_background(region: str = 'chui', days: int = 365):
+    """
+    Фоновое обучение ML модели.
+    Запускается автоматически при старте приложения.
+    """
+    try:
+        predictor = FloodMLPredictor(model_type='ensemble')
+        model_path = Path(f'models/flood_predictor_{region}.joblib')
+
+        if not model_path.exists():
+            # Генерируем обучающие данные
+            training_data = generate_training_data(region=region, days=days, include_floods=True)
+            # Обучаем модель
+            predictor.train(training_data, flood_threshold=100.0)
+            # Сохраняем модель
+            model_path.parent.mkdir(parents=True, exist_ok=True)
+            predictor.save_model(str(model_path))
+            return True
+        return False  # Модель уже существует
+    except Exception as e:
+        print(f"Ошибка фонового обучения ML модели: {e}")
+        return False
+
+
 @st.cache_resource
 def get_ml_predictor(region: str) -> FloodMLPredictor:
     """Получение ML предиктора."""
@@ -1122,6 +1205,9 @@ st.sidebar.markdown('''
 </div>
 ''', unsafe_allow_html=True)
 
+# Подсказка для демонстрации
+st.sidebar.info("💡 **Для презентации**: Выберите 'Влажный' или 'Экстремальный' сценарий и период 60-180 дней для более разнообразных результатов")
+
 scenario = st.sidebar.selectbox(
     "Сценарий осадков",
     options=['normal', 'wet', 'dry', 'extreme'],
@@ -1131,6 +1217,7 @@ scenario = st.sidebar.selectbox(
         'dry': '☀️ Засушливый (-50%)',
         'extreme': '⛈️ Экстремальный (+100%)'
     }[x],
+    index=1,  # По умолчанию выбран "Влажный" для более интересных результатов
     help="Сценарий определяет интенсивность осадков в симуляции"
 )
 
@@ -1138,7 +1225,7 @@ simulation_days = st.sidebar.slider(
     "Период симуляции (дней)",
     min_value=7,
     max_value=364,  # Changed from 365 to be evenly divisible by step (7)
-    value=30,
+    value=91,  # Увеличено с 30 до 91 дней (7 + 7*12), кратно 7
     step=7,
     help="Количество дней для моделирования гидрологической обстановки"
 )
@@ -1363,13 +1450,9 @@ with tab1:
     <div class="section-header">📊 Гидрологическая симуляция</div>
     ''', unsafe_allow_html=True)
 
-    # Инициализация состояния сессии
-    if 'simulation_results' not in st.session_state:
-        st.session_state.simulation_results = None
-        st.session_state.input_data = None
-
     # Запуск симуляции с улучшенной индикацией прогресса
-    if run_simulation_btn or st.session_state.simulation_results is None:
+    # Кнопка запуска позволяет перезапустить симуляцию с новыми параметрами
+    if run_simulation_btn:
         # Контейнер для прогресса
         progress_container = st.container()
 
@@ -1994,7 +2077,21 @@ with tab3:
 
     # Проверка изменения региона для перестройки карты
     map_key = f"map_{selected_region}"
-    rebuild_map = map_key not in st.session_state or st.button("🔄 Обновить карту", key="refresh_map")
+
+    # Отслеживание изменения региона
+    if 'current_map_region' not in st.session_state:
+        st.session_state.current_map_region = selected_region
+
+    region_changed = st.session_state.current_map_region != selected_region
+    if region_changed:
+        st.session_state.current_map_region = selected_region
+
+    # Кнопка обновления (только в отдельном столбце, чтобы не мешать)
+    col_map1, col_map2 = st.columns([4, 1])
+    with col_map2:
+        refresh_clicked = st.button("🔄 Обновить карту", key="refresh_map")
+
+    rebuild_map = (map_key not in st.session_state) or region_changed or refresh_clicked
 
     if rebuild_map:
         region_config = REGIONS[selected_region]
@@ -2036,7 +2133,7 @@ with tab3:
             fill=True,
             fillColor='blue',
             fillOpacity=0.1,
-            popup=f'Регион: {region_config.name}'
+            popup=f'Регион: {html.escape(region_config.name)}'
         ).add_to(m)
 
         # Маркеры рек
@@ -2047,7 +2144,7 @@ with tab3:
 
             folium.Marker(
                 location=[lat, lon],
-                popup=f'Река: {river}',
+                popup=f'Река: {html.escape(river)}',
                 icon=folium.Icon(color='blue', icon='tint', prefix='fa')
             ).add_to(m)
 
@@ -2066,6 +2163,8 @@ with tab3:
 
                     color = 'red' if row['risk_level'] == 'critical' else 'orange'
 
+                    risk_label = html.escape(get_risk_label(row['risk_level']))
+                    discharge_value = html.escape(f"{row['discharge_m3s']:.1f}")
                     folium.CircleMarker(
                         location=[lat, lon],
                         radius=10,
@@ -2073,7 +2172,7 @@ with tab3:
                         fill=True,
                         fillColor=color,
                         fillOpacity=0.5,
-                        popup=f"Риск: {get_risk_label(row['risk_level'])}<br>Расход: {row['discharge_m3s']:.1f} м³/с"
+                        popup=f"Риск: {risk_label}<br>Расход: {discharge_value} м³/с"
                     ).add_to(m)
 
         folium.LayerControl().add_to(m)

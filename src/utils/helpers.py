@@ -304,7 +304,8 @@ def generate_sample_data(
     region: str = "chui",
     days: int = 365,
     scenario: str = "normal",
-    hourly: bool = True
+    hourly: bool = True,
+    ensure_events: bool = True
 ) -> pd.DataFrame:
     """
     Генерация тестовых данных для демонстрации.
@@ -314,13 +315,15 @@ def generate_sample_data(
         days: Число дней
         scenario: Сценарий ('normal', 'wet', 'dry', 'extreme')
         hourly: Генерировать почасовые данные (True) или суточные (False)
+        ensure_events: Гарантировать наличие интересных событий (True)
 
     Returns:
         DataFrame с тестовыми данными
     """
     from datetime import timedelta
 
-    np.random.seed(42)
+    # Убираем фиксированный seed для большей вариативности между запусками
+    np.random.seed(None)
 
     start_date = datetime(2024, 1, 1)
 
@@ -345,31 +348,49 @@ def generate_sample_data(
         precip = np.random.exponential(scale=0.3, size=n_points) * seasonal * diurnal
 
         # Добавление "дождливых" периодов
-        n_rain_events = int(days * 0.15)  # 15% дней с дождем
+        if ensure_events:
+            n_rain_events = max(int(days * 0.15), 5)  # Минимум 5 дождливых периодов
+        else:
+            n_rain_events = int(days * 0.15)
+
         rain_starts = np.random.choice(range(0, n_points - 12), size=n_rain_events, replace=False)
         for start in rain_starts:
-            duration = np.random.randint(3, 12)
-            intensity = np.random.exponential(2)
-            precip[start:start+duration] += intensity * np.random.exponential(1, duration)
+            duration = np.random.randint(3, 18)
+            intensity = np.random.exponential(2.5)
+            precip[start:start+duration] += intensity * np.random.exponential(1.5, duration)
 
         precip = np.maximum(precip, 0)
 
         # Добавление экстремальных событий
         if scenario in ['normal', 'wet', 'extreme']:
-            n_extreme = max(1, int(days * 0.02))
+            if ensure_events:
+                n_extreme = max(2, int(days * 0.03))  # Минимум 2 экстремальных события
+            else:
+                n_extreme = max(1, int(days * 0.02))
+
             extreme_starts = np.random.choice(range(0, n_points - 24), size=n_extreme, replace=False)
             for start in extreme_starts:
-                duration = np.random.randint(6, 24)
-                precip[start:start+duration] *= np.random.uniform(4, 8)
+                duration = np.random.randint(8, 36)
+                multiplier = np.random.uniform(5, 10) if scenario == 'extreme' else np.random.uniform(3, 6)
+                precip[start:start+duration] += np.random.exponential(3, duration) * multiplier
 
         # Модификация по сценарию
         multipliers = {'normal': 1.0, 'wet': 1.5, 'dry': 0.5, 'extreme': 2.0}
         precip *= multipliers.get(scenario, 1.0)
 
-        # Температура с дневным циклом
-        base_temp = 10 + 15 * np.sin((day_of_year - 100) * 2 * np.pi / 365)
-        diurnal_temp = 5 * np.sin((hour_of_day - 6) * 2 * np.pi / 24)  # Макс в 18:00
-        temp = base_temp + diurnal_temp + np.random.normal(0, 2, size=n_points)
+        # Температура с дневным циклом и большей вариативностью
+        base_temp = 10 + 20 * np.sin((day_of_year - 100) * 2 * np.pi / 365)
+        diurnal_temp = 7 * np.sin((hour_of_day - 6) * 2 * np.pi / 24)  # Макс в 18:00
+        # Добавляем больше шума для реалистичности
+        temp = base_temp + diurnal_temp + np.random.normal(0, 3, size=n_points)
+
+        # Добавляем случайные периоды тепла (таяние снега)
+        if ensure_events:
+            n_warm_periods = max(2, int(days * 0.05))
+            for _ in range(n_warm_periods):
+                warm_start = np.random.randint(0, n_points - 48)
+                warm_duration = np.random.randint(24, 72)
+                temp[warm_start:warm_start+warm_duration] += np.random.uniform(5, 15)
 
     else:
         # Суточные данные
@@ -389,8 +410,13 @@ def generate_sample_data(
 
         # Добавление экстремальных событий
         if scenario in ['normal', 'wet', 'extreme']:
-            extreme_days = np.random.choice(days, size=int(days * 0.02), replace=False)
-            precip[extreme_days] *= np.random.uniform(3, 6, size=len(extreme_days))
+            if ensure_events:
+                n_extreme_days = max(2, int(days * 0.03))
+            else:
+                n_extreme_days = int(days * 0.02)
+            extreme_days = np.random.choice(days, size=n_extreme_days, replace=False)
+            multiplier = np.random.uniform(4, 8) if scenario == 'extreme' else np.random.uniform(3, 6)
+            precip[extreme_days] *= multiplier
 
         # Модификация по сценарию
         multipliers = {'normal': 1.0, 'wet': 1.5, 'dry': 0.5, 'extreme': 2.0}

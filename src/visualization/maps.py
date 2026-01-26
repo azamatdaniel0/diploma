@@ -5,6 +5,7 @@
 import numpy as np
 from typing import Optional, Dict, List, Tuple
 from datetime import datetime
+import html
 
 from ..config import REGIONS
 
@@ -118,7 +119,7 @@ class FloodRiskMapper:
             color='blue',
             weight=3,
             fill=False,
-            popup=name
+            popup=html.escape(name)
         ).add_to(m)
 
         return m
@@ -157,7 +158,7 @@ class FloodRiskMapper:
                 fill=True,
                 fillColor=color,
                 fillOpacity=0.7,
-                popup=f"Риск: {risk}<br>Значение: {value:.2f}"
+                popup=f"Риск: {html.escape(str(risk))}<br>Значение: {value:.2f}"
             ).add_to(feature_group)
 
         feature_group.add_to(m)
@@ -225,7 +226,7 @@ class FloodRiskMapper:
                         color='blue',
                         weight=3,
                         opacity=0.8,
-                        popup=name
+                        popup=html.escape(name)
                     ).add_to(river_group)
 
             river_group.add_to(m)
@@ -268,11 +269,11 @@ class FloodRiskMapper:
 
             popup_text = f"""
             <b>Паводковое событие</b><br>
-            Начало: {event.start_time}<br>
-            Пик: {event.peak_time}<br>
+            Начало: {html.escape(str(event.start_time))}<br>
+            Пик: {html.escape(str(event.peak_time))}<br>
             Длительность: {event.duration_hours:.1f} ч<br>
             Пиковый расход: {event.peak_discharge_m3s:.1f} м³/с<br>
-            Уровень риска: {event.risk_level.value}
+            Уровень риска: {html.escape(event.risk_level.value)}
             """
 
             folium.Marker(
@@ -398,10 +399,10 @@ class FloodRiskMapper:
             ]
 
             popup_text = f"""
-            <b>{config.name}</b><br>
+            <b>{html.escape(config.name)}</b><br>
             Площадь: {config.area_km2:,} км²<br>
             Ср. высота: {config.avg_elevation} м<br>
-            Реки: {', '.join(config.main_rivers)}
+            Реки: {html.escape(', '.join(config.main_rivers))}
             """
 
             folium.Polygon(
@@ -420,7 +421,7 @@ class FloodRiskMapper:
 
             folium.Marker(
                 location=[center_lat, center_lon],
-                popup=config.name,
+                popup=html.escape(config.name),
                 icon=folium.Icon(color=color.replace('dark', '').replace('cadet', ''),
                                icon='info-sign')
             ).add_to(m)
