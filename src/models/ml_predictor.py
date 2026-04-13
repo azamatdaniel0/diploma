@@ -1374,6 +1374,71 @@ def train_flood_predictor(
     return predictor, metrics
 
 
+def train_on_real_dataset(
+    dataset_path: str = 'data/kyrgyzstan_floods_dataset.csv',
+    region: str | None = None,
+    model_type: str = 'ensemble',
+    save_path: str | None = None,
+) -> Tuple['FloodMLPredictor', Dict]:
+    """
+    Обучение модели на реальном датасете МЧС + Open-Meteo.
+
+    Args:
+        dataset_path: Путь к CSV-файлу датасета (создаётся scripts/build_dataset.py)
+        region: Фильтр по региону (None = все регионы)
+        model_type: Тип модели ('rf', 'gb', 'mlp', 'ensemble')
+        save_path: Куда сохранить модель (None = автоматически)
+
+    Returns:
+        (predictor, metrics)
+    """
+    from pathlib import Path
+
+    path = Path(dataset_path)
+    if not path.exists():
+        raise FileNotFoundError(
+            f'Датасет не найден: {path}\n'
+            f'Запустите: python scripts/build_dataset.py'
+        )
+
+    print(f'Загрузка датасета: {path}')
+    df = pd.read_csv(path, parse_dates=['timestamp'])
+
+    if region:
+        df = df[df['region'] == region].copy()
+        print(f'Регион: {region} ({len(df)} записей)')
+
+    if len(df) < 100:
+        raise ValueError(f'Недостаточно данных: {len(df)} записей')
+
+    # Сортировка по времени
+    df = df.sort_values('timestamp').reset_index(drop=True)
+
+    print(f'Всего записей: {len(df):,}')
+    print(f'Паводков: {df["flood"].sum():,} ({df["flood"].mean() * 100:.1f}%)')
+    print(f'Период: {df["timestamp"].min().date()} — {df["timestamp"].max().date()}')
+
+    # Обучение
+    predictor = FloodMLPredictor(model_type=model_type)
+    metrics = predictor.train(df, flood_threshold=150.0, use_time_series_cv=True)
+
+    print('\nМетрики:')
+    for name, m in metrics.items():
+        f1 = m.get('f1', 0)
+        roc = m.get('roc_auc', 0)
+        print(f'  {name}: F1={f1:.3f}, ROC-AUC={roc:.3f}')
+
+    # Сохранение
+    if save_path is None:
+        region_suffix = f'_{region}' if region else '_all'
+        save_path = f'models/flood_predictor{region_suffix}_real.joblib'
+
+    predictor.save_model(save_path)
+    print(f'\nМодель сохранена: {save_path}')
+
+    return predictor, metrics
+
+
 if __name__ == "__main__":
     # Пример использования с базовым ансамблем
     print("=" * 60)
